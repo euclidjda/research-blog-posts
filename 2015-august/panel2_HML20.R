@@ -11,7 +11,8 @@ end.month <- 6
 
 # The URL for the data.
 # http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/25_Portfolios_5x5_CSV.zip
-url.name  <- paste("http://mba.tuck.dartmouth.edu", "pages/faculty/ken.french/ftp", sep="/")
+url.name  <- paste("http://mba.tuck.dartmouth.edu",
+                   "pages/faculty/ken.french/ftp", sep="/")
 file.name <- "25_Portfolios_5x5_CSV.zip"
 
 # Download the data and unzip it
@@ -21,7 +22,10 @@ download.file(ff.url, f)
 file.list <- unzip(f, list=TRUE)
  
 # Parse the data
-fama.data <- read.csv(unzip(f, files=as.character(file.list[1,1])), skip=19,header=TRUE,stringsAsFactors=FALSE)
+fama.data <- read.csv(unzip(f,files=as.character(file.list[1,1])),
+                      skip=19,
+                      header=TRUE,
+                      stringsAsFactors=FALSE)
 names(fama.data)[[1]] <- "DATE"
 
 # Now we want to remove all the data below the end date
@@ -55,7 +59,7 @@ width <- 5*12
 
 # So that we can use geometric returns
 Return.custom <- function(R, scale = NA, geometric = TRUE) {
-    Return.annualized(R, scale = NA, geometric = FALSE)
+    Return.annualized(R, scale = NA, geometric = TRUE)
 }
 
 z <- apply.rolling(ts.data, width=width, FUN = "Return.custom")
@@ -104,8 +108,8 @@ while ( i < rows ) {
                      "Duration=",(end.idx-start.idx)/12)
         print(str)
 
-        # Go back three years to get earliest negative point
-        i <- j - 12*3
+        # i <- j - 12*3
+        i <- end.idx + 1
         
     } else {
 
@@ -114,13 +118,12 @@ while ( i < rows ) {
     }
 
 }
-
-                                        # Create Series
+                                 # Create Series
 series <- c()
 months <- c()
 values <- c()
 
-for (i in 2:length(start.indexes)) {
+for (i in 3:length(start.indexes)) {
 
     start.idx <- start.indexes[i]
     end.idx   <- end.indexes[i]
@@ -134,8 +137,8 @@ for (i in 2:length(start.indexes)) {
     
     for (j in start.idx:end.idx) {
 
-        # cur.value <- (cur.value+1)*(fama.data$Hi.Lo[j]+1)-1
-        cur.value <- cur.value + fama.data$Hi.Lo[j]
+        cur.value <- (cur.value+1)*(fama.data$Hi.Lo[j]+1)-1
+        # cur.value <- cur.value + fama.data$Hi.Lo[j]
         
         series <- c(series,str)
         months <- c(months,j-start.idx+2)
@@ -147,20 +150,21 @@ for (i in 2:length(start.indexes)) {
 
 recov.data <- data.frame(series,months,values)
 
-colors <- rev( brewer.pal(6,"Set1") )
-#colors <- c(colors,'#617994')
-#colors <- c('blue','green','yellow','#34BBA7','#617994','#DD592D')
-
-# color=c('#34BBA7','#617994','#DD592D')
+colors <- rev( brewer.pal(7,"Blues") )[1:5]
+colors <- c(colors, '#DD592D' )
 
 g <- ggplot(recov.data,aes(x=months,y=values,size=series,group=series,colour=series))
+g <- g + geom_hline(aes(yintercept=0.0),color="grey",linetype=1) 
 g <- g + geom_line()
 g <- g + scale_size_manual(values=c(1,1,1,1,1,2))
 g <- g + scale_colour_manual(values=colors )
-g <- g + scale_x_discrete( "", breaks=c(1,12,24,48,72,96) )
-g <- g + scale_y_continuous( "", labels=percent )    
-g <- g + guides(fill=FALSE)
-#g <- g + guides(fill=guide_legend(title=NULL)) +
-#  theme(legend.position=c(1,2),legend.justification=c(1,1))
 
-g+theme_fivethirtyeight()
+#g <- g + scale_x_discrete( "", breaks=c(1,12,24,48,72,96), labels=c("1mo","1yr","2yrs","4yrs","6yrs","8yrs") )
+g <- g + scale_x_discrete( "", breaks=c( 1, 25, 50, 75 ) )
+g <- g + scale_y_continuous( "", labels=percent )
+g <- g + guides(fill=FALSE)
+
+g + theme_bw() + theme(legend.position="none",
+                       panel.background=element_blank() ,
+                       panel.border=element_blank() )
+

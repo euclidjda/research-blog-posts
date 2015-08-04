@@ -22,15 +22,14 @@ file.list <- unzip(f, list=TRUE)
 fama.data <- read.csv(unzip(f, files=as.character(file.list[1,1])), skip=19,header=TRUE,stringsAsFactors=FALSE)
 names(fama.data)[[1]] <- "DATE"
 
-
 # Now we want to remove all the data below the end date
 
 start.year  <- as.numeric(substr(fama.data$DATE[[1]],1,4))
 start.month <- as.numeric(substr(fama.data$DATE[[1]],5,6))
-num.rows <- 12*(end.year-start.year)+(end.month-start.month)+1
-fama.data <- head(fama.data,num.rows)
+num.rows    <- 12*(end.year-start.year)+(end.month-start.month)+1
+fama.data   <- head(fama.data,num.rows)
 
-date.seq <- as.Date(paste(fama.data$DATE,"01",sep=""),"%Y%m%d")
+date.seq       <- as.Date(paste(fama.data$DATE,"01",sep=""),"%Y%m%d")
 fama.data$DATE <- date.seq
 
 # Transform the data soe that the return cells are numeric decimal format
