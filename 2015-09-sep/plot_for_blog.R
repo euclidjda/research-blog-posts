@@ -4,6 +4,7 @@ library(scales)
 library(ggthemes)
 library(PerformanceAnalytics)
 library(RColorBrewer)
+library(plyr)
 
 # The URL for the data
 url.name     <- "http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp"
@@ -62,7 +63,7 @@ hi.lo.monthly <- xts(ts.data$french.data.Hi.Lo,date.seq)
 hi.lo.annual  <- aggregate(hi.lo.monthly+1, as.integer(format(index(hi.lo.monthly),"%Y")), prod)-1
 
 
-cpi.raw <- read.table("~/work/research/research-blog-posts/2015-september/cpi_data.dat",
+cpi.raw <- read.table("~/work/research/research-blog-posts/2015-09-sep/cpi_data.dat",
                       sep = " ",
                       header = TRUE,
                       na.strings="NULL",
@@ -112,9 +113,16 @@ p.decade <- ggplot(df.decade,aes(x=cpi,y=hilo))+
 
                                         # HERE WE ARE GOING TO TRY TO BOOTSTRAP STATS
 
-for (window.size in 1:10) {
 
-    for ( n in 1:10 ) {
+######################################################################################
+
+# Calc correlation coeffienct for bootstrapped periods
+
+result.all <- data.frame( size=c(), boot=c(), value=c() )
+
+for (window.size in c(2,4,6,8,10)) {
+
+    for ( n in 1:300 ) {
         
         num.years   <- nrow(df.annual)
         num.windows <- floor(num.years/window.size)
@@ -134,17 +142,78 @@ for (window.size in 1:10) {
         result <- aggregate(samp[,c("cpi","hilo")]+1, by=list(samp$period), FUN=geomean)
         result <- result[,c("cpi","hilo")]-1
         result$year <- df.annual[indorig,]$year
-        str <- paste(window.size,cor(result$cpi,result$hilo))
-        print(str)
 
+        new.row <- data.frame( size=c(window.size), boot=c(n), value=c(cor(result$cpi,result$hilo)))
+        result.all <- rbind( result.all, new.row )
     }
                  
 }
 
-p.period <- ggplot(result,aes(x=cpi,y=hilo))+
-      geom_text(aes(label=year),size=2.5)+
-          geom_smooth(method = "lm")+
-              scale_x_continuous("Annual Change in CPI",label=percent)+
-                  scale_y_continuous("Outperformance: Value vs. Growth",label=percent)+
-                      ggtitle("The Relationship Between Inflation and Value Investing")
+ggplot(data=result.all,aes(x=value,color=size,fill=size))+
+    geom_histogram(binwidth=0.01)+
+        facet_wrap(~size,ncol=5)+
+            coord_flip()
 
+cdata <- ddply(result.all,.(size),summarise,N=length(value),
+               min=min(value),
+               lower=quantile(value,0.05),
+               y=mean(value),
+               middle=median(value),
+               upper=quantile(value,0.95),
+               max=max(value)               )
+
+
+######################################################################################
+
+# Calc correlation coeffienct for sequential periods
+
+result.all <- data.frame( size=c(), value=c() )
+
+for (window.size in 1:10) {
+
+    num.years   <- nrow(df.annual)
+    num.windows <- ceiling(num.years/window.size)
+
+    samp <- df.annual
+    samp$period <- gl(num.windows,window.size,length=num.years)
+
+    result <- aggregate(samp[,c("cpi","hilo")]+1, by=list(samp$period), FUN=geomean)
+    result <- result[,c("cpi","hilo")]-1
+    result$year <- df.annual[seq(from=1,to=num.years,by=window.size),]$year
+    
+    new.row <- data.frame( size=c(window.size), value=c(cor(result$cpi,result$hilo)))
+    result.all <- rbind( result.all, new.row )
+                 
+}
+
+######################################################################################
+# Build table of all data point for sequential periods then do regression
+
+result.all <- data.frame( size=c(), cpi=c(), hilo=c(), year=c() )
+
+for (window.size in 1:10) {
+
+    num.years   <- nrow(df.annual)
+    num.windows <- ceiling(num.years/window.size)
+
+    samp <- df.annual
+    samp$period <- gl(num.windows,window.size,length=num.years)
+
+    result <- aggregate(samp[,c("cpi","hilo")]+1, by=list(samp$period), FUN=geomean)
+    result <- result[,c("cpi","hilo")]-1
+    result$year <- df.annual[seq(from=1,to=num.years,by=window.size),]$year
+    result$size <- window.size
+    
+    result.all <- rbind( result.all, result )
+                 
+}
+
+result.all$size <- factor( result.all$size )
+
+ggplot(result.all,aes(x=cpi,y=hilo))+
+    geom_text(aes(label=year),size=1.5)+
+        facet_wrap(~size,ncol=5,scales="free")+
+            geom_smooth(method=lm,se=FALSE,fullrange=TRUE)+
+                scale_x_continuous(labels=percent)+
+                    scale_y_continuous(labels=percent)
+                    
