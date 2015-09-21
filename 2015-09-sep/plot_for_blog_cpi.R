@@ -6,6 +6,11 @@ library(PerformanceAnalytics)
 library(RColorBrewer)
 library(plyr)
 
+# Define geometric mean
+geomean = function(x, na.rm=TRUE){
+  exp(sum(log(x[x > 0]), na.rm=na.rm) / length(x))
+}
+
 # The URL for the data
 url.name     <- "http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp"
 file.name    <- "25_Portfolios_5x5_CSV.zip"
@@ -62,7 +67,6 @@ hi.lo.monthly <- xts(ts.data$french.data.Hi.Lo,date.seq)
 
 hi.lo.annual  <- aggregate(hi.lo.monthly+1, as.integer(format(index(hi.lo.monthly),"%Y")), prod)-1
 
-
 cpi.raw <- read.table("~/work/research/research-blog-posts/2015-09-sep/cpi_data.dat",
                       sep = " ",
                       header = TRUE,
@@ -91,10 +95,6 @@ p.annual <- ggplot(df.annual,aes(x=cpi,y=hilo))+
                 scale_y_continuous("Outperformance: Value vs. Growth",label=percent)+
                     ggtitle("The Relationship Between Inflation and Value Investing")
 
-geomean = function(x, na.rm=TRUE){
-  exp(sum(log(x[x > 0]), na.rm=na.rm) / length(x))
-}
-
 cpi.decade <- aggregate(cpi.annual+1, as.integer(substr(index(cpi.annual),1,3)), geomean)-1
 hi.lo.decade <- aggregate(hi.lo.annual+1, as.integer(substr(index(hi.lo.annual),1,3)), geomean)-1
 
@@ -106,13 +106,10 @@ df.decade$year <- rownames(df.decade)
 
 p.decade <- ggplot(df.decade,aes(x=cpi,y=hilo))+
       geom_text(aes(label=paste(year,"0s",sep="")),size=2.5)+
-          geom_smooth(method = "lm")+
+          geom_smooth(method = "lm", se = FALSE)+
               scale_x_continuous("Annual Change in CPI",label=percent)+
                   scale_y_continuous("Outperformance: Value vs. Growth",label=percent)+
                       ggtitle("The Relationship Between Inflation and Value Investing")
-
-                                        # HERE WE ARE GOING TO TRY TO BOOTSTRAP STATS
-
 
 ######################################################################################
 
@@ -162,6 +159,64 @@ cdata <- ddply(result.all,.(size),summarise,N=length(value),
                upper=quantile(value,0.95),
                max=max(value)               )
 
+######################################################################################
+
+# Calc correlation coeffienct for lagged bootstrapped periods
+
+result.all <- data.frame( size=c(), boot=c(), value=c() )
+
+for (window.size in c(2,4,6,8,10)) {
+
+    for ( n in 1:1000 ) {
+        
+        lag.size    <- window.size / 2
+        num.years   <- nrow(df.annual)
+        num.windows <- floor(num.years/window.size)
+        end.index   <- num.years-window.size
+        indexes     <- sort( sample(1:end.index,num.windows,replace=TRUE) )
+        indorig     <- indexes
+
+        for (i in 1:(window.size-1)) {
+            indexes <- c(indexes,indorig+i)
+        }
+
+        indexes <- c( t( matrix( indexes, ncol=window.size ) ) )
+
+        samp <- df.annual[indexes,]
+        samp$period <- gl(num.windows,window.size)
+
+        result <- data.frame( cpi=c(), hilo=c(), year=c() )
+
+        for ( p in levels(samp$period) ) {
+
+            sub <- subset( samp, period == p )
+            new.row <- data.frame( cpi  = geomean( sub[1:lag.size,]$cpi+1 )-1              ,
+                                   hilo = geomean( sub[lag.size+1:length(sub),]$hilo+1 )-1 ,
+                                  year = sub[1,]$year                                      )
+            result <- rbind( result, new.row )
+
+        }
+
+        new.row <- data.frame( size=c(window.size), boot=c(n), value=c(cor(result$cpi,result$hilo)))
+        result.all <- rbind( result.all, new.row )
+    }
+                 
+}
+
+aggregate(result.all[c("value")],by=list(result.all$size),mean)
+
+ggplot(data=result.all,aes(x=value,color=size,fill=size))+
+    geom_histogram(binwidth=0.01)+
+        facet_wrap(~size,ncol=5)+
+            coord_flip()
+
+cdata <- ddply(result.all,.(size),summarise,N=length(value),
+               min=min(value),
+               lower=quantile(value,0.05),
+               y=mean(value),
+               middle=median(value),
+               upper=quantile(value,0.95),
+               max=max(value)               )
 
 ######################################################################################
 
