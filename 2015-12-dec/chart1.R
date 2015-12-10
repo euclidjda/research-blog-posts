@@ -1,5 +1,4 @@
 #!/usr/bin/env Rscript
-# Prototype R script for use at command line in Linux, Mac OS X, UNIX
 
 library(zoo);
 library(xts);
@@ -20,7 +19,7 @@ date.seq <- as.Date(paste(raw$DATE,"01",sep=""),"%Y%m%d")
 Hi10SP500.ts <- xts(raw$Hi10-raw$SP500,date.seq)
 data.ts      <- xts( cbind(raw$Hi10,raw$SP500), date.seq );
 
-# proxima nova font
+pdf("chart1.pdf");
 
 par(mfrow=c(2,1),mar=c(1,4,2,1), oma=c(2,1,2,1));
 
@@ -41,8 +40,10 @@ legend(150,500,
        lwd = c( 2, 2),
        xjust = .5, yjust = .5)
 
-chart.Drawdown(Hi10SP500.ts,ylab="Drawdown Relative to SP500 TR",col=c('#DD592D'),yaxis=FALSE);
+chart.Drawdown(Hi10SP500.ts,ylab="Drawdown Relative to SP500 TR",
+               col=c('#DD592D'),yaxis=FALSE);
 
 yLabels <- c(-.5, -.4, -.3, -.2, -.1, 0)
 axis(2, at=yLabels, labels=sprintf(round(100*yLabels), fmt="%d%%") )
 
+dev.off();

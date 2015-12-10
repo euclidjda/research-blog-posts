@@ -1,4 +1,5 @@
-# Load libraries
+#!/usr/bin/env Rscript
+
 library(stringr)
 library(scales)
 library(ggthemes)
@@ -6,7 +7,7 @@ library(PerformanceAnalytics)
 library(RColorBrewer)
 library(plyr)
 
-raw <- read.table("~/work/research/research-blog-posts/2015-12-dec/data-1962.dat",
+raw <- read.table("data-1962.dat",
                        sep = " ",
                        header = TRUE,
                        na.strings="NULL",
@@ -19,8 +20,6 @@ date.seq <- as.Date(paste(raw$DATE,"01",sep=""),"%Y%m%d")
 Hi10SP500.ts <- xts(raw$Hi10-raw$SP500,date.seq)
 Hi10.ts      <- xts(raw$Hi10,date.seq)
 SP500.ts     <- xts(raw$SP500,date.seq)
-
-# charts.PerformanceSummary(Hi10SP500.ts)
 
 win.ts    <- window(Hi10SP500.ts,start=date.seq[1],end="2009-12-31")
 drawdowns <- table.Drawdowns(win.ts,top=6)
@@ -86,6 +85,7 @@ all.data <- data.frame(series,type,months,comp)
 
 colors=c('#617994','#DD592D')
 
+pdf("chart2.pdf");
                                         # Plot the data
 ggplot(all.data,aes(x=months,y=comp,group=type,colour=type)) +
     geom_line(size=2)+
@@ -95,17 +95,4 @@ ggplot(all.data,aes(x=months,y=comp,group=type,colour=type)) +
                 facet_wrap(~series,scales="free")+
                      theme_bw()+guides(colour=FALSE)
 
-#sub.data <- subset(all.data,type=="VALUE")
-
-#colors <- rev( brewer.pal(7,"Blues") )[1:9]
-
-#g <- ggplot(sub.data,aes(x=months,y=comp,group=series,colour=series))
-#g <- g + geom_hline(aes(yintercept=0.0),color="grey",linetype=1)
-#g <- g + geom_line()
-#g <- g + scale_colour_manual(values=colors )
-#g <- g + scale_x_discrete( "", breaks=c(0,1,3,6,9,12,18,24))
-#g <- g + scale_y_continuous( "", labels=percent )
-# <- g + guides(fill=FALSE)
-#g + theme_bw() + theme(panel.background=element_blank() ,panel.border=element_blank() )
-
-
+dev.off()
