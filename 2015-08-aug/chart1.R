@@ -1,4 +1,7 @@
+#!/usr/bin/env Rscript
+
 # Load libraries
+
 library(stringr)
 library(scales)
 library(ggthemes)
@@ -6,8 +9,7 @@ library(PerformanceAnalytics)
 library(RColorBrewer)
 
 # The URL for the data
-url.name     <- paste("http://mba.tuck.dartmouth.edu",
-                   "pages/faculty/ken.french/ftp", sep="/")
+url.name     <- "http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp"
 file.name    <- "25_Portfolios_5x5_CSV.zip"
 full.url     <- paste(url.name, file.name, sep="/")
 
@@ -33,7 +35,7 @@ french.data   <- read.csv(unzip(temp.file,
                         stringsAsFactors=FALSE)
 names(french.data)[[1]] <- "DATE"
 
-# Now we want to remove all the data above start date and below the end date
+# Now we want to remove all the data below the end date
 ds.year     <- as.numeric(substr(french.data$DATE[[1]],1,4))
 ds.month    <- as.numeric(substr(french.data$DATE[[1]],5,6))
 num.rows    <- 12*(end.year-ds.year)+(end.month-ds.month)+1
@@ -41,7 +43,7 @@ french.data <- head(french.data,num.rows)
 date.seq    <- as.Date(paste(french.data$DATE,"01",sep=""),"%Y%m%d")
 french.data$DATE <- date.seq
 
-# Transform the data soe that the return cells are numeric decimal format
+# Transform the data so that the return cells are numeric decimal format
 for (i in 2:ncol(french.data)) french.data[,i] <- as.numeric(str_trim(french.data[,i]))
 for (i in 2:ncol(french.data)) french.data[,i] <- french.data[,i]/100
 
@@ -78,6 +80,8 @@ background <- data.frame( lower = c(-.20,0.0) ,
                           upper = c(0.0, 0.25),
                           col = letters[1:2]  )
 
+pdf("chart1.pdf")
+
 # Plot the data
 g <- ggplot()
 
@@ -110,3 +114,5 @@ g <- g + theme_bw() + theme(legend.position="none",
                             panel.border=element_blank() )
 
 g
+
+dev.off()

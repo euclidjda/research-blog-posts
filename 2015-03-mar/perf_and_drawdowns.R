@@ -6,15 +6,20 @@ library(xts);
 library(PerformanceAnalytics);
 library(ggplot2);
 
-# Load Data
-data <- read.table("sim_results-0.dat", sep = " ", header = TRUE);
+# IMPORTANT!!!
+# THIS WAS OUR FIRST BLOG AND IT WAS WRITTEN BEFORE WE DECIDED TO ONLY USE
+# PUBLICLY AVAILABLE DATA.
+# UNLIKE THE OTHERS, THIS BLOG DEPENDS ON PROPRIETRARY DATA THAT WE CANNOT
+# SHAR ON GITHUB. CHECK OUT THE OTHER BLOG POST SCRIPTS AS THEY ALL USE
+# PUBLICLY AVAILABLE DATA AND ARE FULLY SELF CONTAINED.
+# OR USE THIS AS A TEMPLATE FOR YOUR OWN SCRIPTS.
+
+data <- read.table("FILE_DOESNT_EXIST", sep = " ", header = TRUE);
 
 ey <- data$EY;
 sp500 <- data$SP500;
 
 dates = seq(from=as.Date("1973-01-01"), by = "month", length.out=NROW(ey));
-
-#data_ts <- ts( cbind(ey,sp500), start = c(1973,1), frequency=12);
 
 data_ts <- cbind(ey,sp500);
 data_xts <- xts( data_ts, order.by=dates );
@@ -53,7 +58,8 @@ legend(100,500,
        lwd = c( 2, 2),
        xjust = .5, yjust = .5)
 
-chart.Drawdown(ex_xts,ylab="Drawdown Relative to SP500 TR",col=c('#DD592D'),yaxis=FALSE);
+chart.Drawdown(ex_xts,ylab="Drawdown Relative to SP500 TR",col=c('#DD592D'),
+               yaxis=FALSE);
 
 yLabels <- c(-.5, -.4, -.3, -.2, -.1, 0)
 axis(2, at=yLabels, labels=sprintf(round(100*yLabels), fmt="%d%%") )

@@ -5,9 +5,10 @@ library(ggplot2)
 library(plyr)
 library(RColorBrewer)
 library(scales)
+library(grid)
 library(gridExtra)
 
-data <- read.table("all.dat",sep = " ", header = TRUE,na.strings="NULL")
+data <- read.table("data-all.dat",sep = " ", header = TRUE,na.strings="NULL")
 
 aspect.ratio <- 0.5
 
@@ -27,7 +28,11 @@ data$quantile <- rep(x.axis,repeats)
 
 # None of the below should need to be changed per run
 
-cdata1 <- ddply(data,c("quantile"),summarise,N=length(X),type="fund", value=median(X), lo=quantile(X,0.05), hi=quantile(X,0.95))
+cdata1 <- ddply(data,c("quantile"),summarise,
+                N=length(X),type="fund",
+                value=median(X),
+                lo=quantile(X,0.05),
+                hi=quantile(X,0.95))
 mrkt   <- cdata1$value[[length(cdata1$value)]]
 
 cdata2 <- data.frame(quantile = x.axis                  ,
@@ -39,19 +44,16 @@ cdata2 <- data.frame(quantile = x.axis                  ,
 
 cdata <-  rbind.fill(cdata1,cdata2)
 
-# Euclidean colors!
-# green blue orange
-# color=c('#34BBA7','#617994','#DD592D') 
-
-cdata$type <- factor( cdata$type, levels=c("fund","ewuv"), labels=c("Earnings Yield","EW Universe") ) 
+cdata$type <- factor( cdata$type, levels=c("fund","ewuv"),
+                     labels=c("Earnings Yield","EW Universe") ) 
 
 g <- ggplot(cdata,aes(x=quantile,group=type,colour=type,shape=type,linetype=type))
 
 g <- g + geom_line(aes(y=value)) # ,alpha=0.5)
 
-g <- g + geom_ribbon(aes(ymin=lo,ymax=hi,fill=type),alpha=0.1,linetype = 2,colour='#617994',fill='#34BBA7')
+g <- g + geom_ribbon(aes(ymin=lo,ymax=hi,fill=type),
+                     alpha=0.1,linetype = 2,colour='#617994',fill='#34BBA7')
 
-# g <- g + scale_x_continuous("X Title 1",labels=percent)
 g <- g + scale_x_continuous(element_blank(),labels=percent)
 
 g <- g + scale_y_continuous(Label,labels=labels,limits=c(ymin,ymax))
@@ -66,8 +68,6 @@ g <- g + theme(legend.title=element_blank() ,
 g <- g + scale_color_manual(values=c('#617994','#DD592D'))
 
 g <- g + scale_linetype_manual(values=c(1,6))
-
-# g <- g + coord_fixed(ratio=ratio)
 
 p <- g
 
@@ -89,7 +89,11 @@ data$quantile <- rep(x.axis,repeats)
 
 # None of the below should need to be changed per run
 
-cdata1 <- ddply(data,c("quantile"),summarise,N=length(X),type="fund", value=median(X), lo=quantile(X,0.05), hi=quantile(X,0.95))
+cdata1 <- ddply(data,c("quantile"),summarise,N=length(X),type="fund",
+                value=median(X),
+                lo=quantile(X,0.05),
+                hi=quantile(X,0.95))
+
 mrkt   <- cdata1$value[[length(cdata1$value)]]
 
 cdata2 <- data.frame(quantile = x.axis                  ,
@@ -101,24 +105,20 @@ cdata2 <- data.frame(quantile = x.axis                  ,
 
 cdata <-  rbind.fill(cdata1,cdata2)
 
-# Euclidean colors!
-# green blue orange
-# color=c('#34BBA7','#617994','#DD592D') 
-
-cdata$type <- factor( cdata$type, levels=c("fund","ewuv"), labels=c("Earnings Yield","EW Universe") ) 
+cdata$type <- factor( cdata$type,
+                     levels=c("fund","ewuv"),
+                     labels=c("Earnings Yield","EW Universe") ) 
 
 g <- ggplot(cdata,aes(x=quantile,group=type,colour=type,shape=type,linetype=type))
 
 g <- g + geom_line(aes(y=value)) # ,alpha=0.5)
 
-g <- g + geom_ribbon(aes(ymin=lo,ymax=hi,fill=type),alpha=0.1,linetype = 2,colour='#617994',fill='#34BBA7')
+g <- g + geom_ribbon(aes(ymin=lo,ymax=hi,fill=type),
+                     alpha=0.1,linetype = 2,colour='#617994',fill='#34BBA7')
 
 g <- g + scale_x_continuous(element_blank(),labels=percent)
 
 g <- g + scale_y_continuous(Label,labels=labels,limits=c(ymin,ymax))
-
-# g <- g + ggtitle(title)
-
 
 g <- g + theme(legend.title=element_blank() ,
                legend.position=c(1,1)       ,
@@ -129,8 +129,8 @@ g <- g + scale_color_manual(values=c('#617994','#DD592D'))
 
 g <- g + scale_linetype_manual(values=c(1,6))
 
-# g <- g + coord_fixed(ratio=ratio)
+pdf("both_charts.pdf")
 
 grid.arrange(p,g, nrow=2)
 
-
+dev.off()
