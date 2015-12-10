@@ -13,7 +13,7 @@ geomean = function(x, na.rm=TRUE){
 
 # The URL for the data
 url.name     <- "http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp"
-file.name    <- "25_Portfolios_5x5_CSV.zip"
+file.name    <- "Portfolios_Formed_on_BE-ME_CSV.zip"
 full.url     <- paste(url.name, file.name, sep="/")
 
 # You can change the ending date of the analysis by changing these variables
@@ -33,7 +33,7 @@ file.list <- unzip(temp.file, list=TRUE)
 # Parse the data
 french.data   <- read.csv(unzip(temp.file,
                               files=as.character(file.list[1,1])),
-                        skip=19,
+                        skip=23,
                         header=TRUE,
                         stringsAsFactors=FALSE)
 names(french.data)[[1]] <- "DATE"
@@ -51,12 +51,7 @@ for (i in 2:ncol(french.data)) french.data[,i] <- as.numeric(str_trim(french.dat
 for (i in 2:ncol(french.data)) french.data[,i] <- french.data[,i]/100
 
 # Now we calculate the the HML sequence from the factor sequences
-# Column names are: DATE SMALL.LoBM ME1.BM2 SMALL.HiBM BIG.LoBM ME2.BM2 BIG.HiBM
-fd <- french.data
-
-french.data$Hi.Lo <-
-    0.2*( fd$SMALL.HiBM + fd$ME2.BM5 + fd$ME3.BM5 + fd$ME4.BM5 + fd$BIG.HiBM ) -
-    0.2*( fd$SMALL.LoBM + fd$ME2.BM1 + fd$ME3.BM1 + fd$ME4.BM1 + fd$BIG.LoBM )
+french.data$Hi.Lo <- french.data$Hi.30 - french.data$Lo.30
 
 # Now create a time series of the HML data that we can pass off to apply.rolling 
 # and other PerformanceAnalytics functions
@@ -117,7 +112,7 @@ p.decade <- ggplot(df.decade,aes(x=cpi,y=hilo))+
 
 result.all <- data.frame( size=c(), boot=c(), value=c() )
 
-for (window.size in c(2,4,6,8,10)) {
+for (window.size in 1:10) {
 
     for ( n in 1:300 ) {
         
@@ -142,6 +137,7 @@ for (window.size in c(2,4,6,8,10)) {
 
         new.row <- data.frame( size=c(window.size), boot=c(n), value=c(cor(result$cpi,result$hilo)))
         result.all <- rbind( result.all, new.row )
+
     }
                  
 }
@@ -160,7 +156,7 @@ cdata <- ddply(result.all,.(size),summarise,N=length(value),
                max=max(value)               )
 
 ######################################################################################
-
+#
 # Calc correlation coeffienct for lagged bootstrapped periods
 
 result.all <- data.frame( size=c(), boot=c(), value=c() )
@@ -219,12 +215,12 @@ cdata <- ddply(result.all,.(size),summarise,N=length(value),
                max=max(value)               )
 
 ######################################################################################
-
+# 
 # Calc correlation coeffienct for sequential periods
 
 result.all <- data.frame( size=c(), value=c() )
 
-for (window.size in 1:10) {
+for ( window.size in 1:10 ) {
 
     num.years   <- nrow(df.annual)
     num.windows <- ceiling(num.years/window.size)
@@ -241,12 +237,50 @@ for (window.size in 1:10) {
                  
 }
 
+result.all
+
+
+######################################################################################
+# 
+# Calc correlation coeffienct for lagged sequential periods
+
+result.all <- data.frame( size=c(), value=c() )
+
+for ( window.size in c(2,4,6,8,10) ) {
+
+    lag.size    <- window.size / 2
+    num.years   <- nrow(df.annual)
+    num.windows <- ceiling(num.years/window.size)
+
+    samp <- df.annual
+    samp$period <- gl(num.windows,window.size,length=num.years)
+
+    result <- data.frame( cpi=c(), hilo=c(), year=c(), size=c() )
+
+    for ( p in levels(samp$period) ) {
+
+        sub <- subset( samp, period == p )
+        new.row <- data.frame( cpi  = geomean( sub[1:lag.size,]$cpi+1 )-1             ,
+                               hilo = geomean( sub[lag.size+1:length(sub),]$hilo+1 )-1 ,
+                               year = sub[1,]$year                                     ,
+                               size = window.size                                      )
+        result <- rbind( result, new.row )
+        
+    }
+
+    new.row <- data.frame( size=c(window.size), value=c(cor(result$cpi,result$hilo)))
+    result.all <- rbind( result.all, new.row )
+                 
+}
+
+result.all
+
 ######################################################################################
 # Build table of all data point for sequential periods then do regression
 
 result.all <- data.frame( size=c(), cpi=c(), hilo=c(), year=c() )
 
-for (window.size in 1:10) {
+for ( window.size in c(2,4,6,8,10) ) {
 
     num.years   <- nrow(df.annual)
     num.windows <- ceiling(num.years/window.size)
@@ -271,4 +305,45 @@ ggplot(result.all,aes(x=cpi,y=hilo))+
             geom_smooth(method=lm,se=FALSE,fullrange=TRUE)+
                 scale_x_continuous(labels=percent)+
                     scale_y_continuous(labels=percent)
+
+######################################################################################
+# Build table of all data points for LAGGED sequential periods then do regression
+
+result.all <- data.frame( size=c(), cpi=c(), hilo=c(), year=c() )
+
+for (window.size in c(2,4,6,8,10)) {
+
+    lag.size    <- window.size / 2
+    num.years   <- nrow(df.annual)
+    num.windows <- ceiling(num.years/window.size)
+
+    samp <- df.annual
+    samp$period <- gl(num.windows,window.size,length=num.years)
+
+   result <- data.frame( cpi=c(), hilo=c(), year=c(), size=c() )
+
+    for ( p in levels(samp$period) ) {
+
+        sub <- subset( samp, period == p )
+        new.row <- data.frame( cpi  = geomean( sub[1:lag.size,]$cpi+1 )-1             ,
+                              hilo = geomean( sub[lag.size+1:length(sub),]$hilo+1 )-1 ,
+                              year = sub[1,]$year                                     ,
+                              size = window.size                                      )
+        result <- rbind( result, new.row )
+
+    }
+    
+    result.all <- rbind( result.all, result )
+                 
+}
+
+result.all$size <- factor( result.all$size )
+
+ggplot(result.all,aes(x=cpi,y=hilo))+
+    geom_text(aes(label=year),size=1.5)+
+        facet_wrap(~size,ncol=5,scales="free")+
+            geom_smooth(method=lm,se=FALSE,fullrange=TRUE)+
+                scale_x_continuous(labels=percent)+
+                    scale_y_continuous(labels=percent)
                     
+

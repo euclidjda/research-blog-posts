@@ -138,7 +138,7 @@ for (window.size in c(2,4,6,8,10)) {
 
             sub <- subset( samp, period == p )
             new.row <- data.frame( tbill10yr  = mean( sub$tbill10yr )   ,
-                                   hilo =       goemean( sub$hilo+1 )-1 ,
+                                   hilo =       geomean( sub$hilo+1 )-1 ,
                                   year = sub[1,]$year                   )
             result <- rbind( result, new.row )
 
