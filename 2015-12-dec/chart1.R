@@ -24,7 +24,7 @@ pdf("chart1.pdf");
 par(mfrow=c(2,1),mar=c(1,4,2,1), oma=c(2,1,2,1));
 
 chart.CumReturns(data.ts,
-                 #main="Value Investing: Simulated Performance and Active Drawdowns",
+                 main="Value Investing: Simulated Performance and Active Drawdowns",
                  cex.main=1.1,
                  sub="",
                  ylab="Growth of $1 Invested",
