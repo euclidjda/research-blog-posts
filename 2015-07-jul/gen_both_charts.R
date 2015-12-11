@@ -1,5 +1,4 @@
 #!/usr/bin/env Rscript
-# Prototype R script for use at command line in Linux, Mac OS X, UNIX
 
 library(ggplot2)
 library(plyr)
