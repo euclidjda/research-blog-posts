@@ -1,6 +1,7 @@
 #!/usr/bin/env Rscript
 
 # Load libraries
+library(ggplot2)
 library(stringr)
 library(scales)
 library(ggthemes)
